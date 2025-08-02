@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Data</title>
+    <link rel="stylesheet" href="semproject.css" />
+</head>
+
+<body>
+    <div class="form-container">
+        <button id="createFile">Create New File</button>
+        <button id="openFile">Choose Existing File</button>
+
+
+
+        <form id="customerForm">
+            <label for="customer_id">Customer ID</label><br>
+            <input type="text" id="customer_id" name="customer_id" required><br>
+
+            <label for="age">Age</label><br>
+            <input type="number" id="age" name="age" required><br>
+
+            <label for="gender">Gender</label><br>
+            <select id="gender" name="gender" required>
+                <option value="" disabled selected>Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select><br>
+
+            <label for="income">Income</label><br>
+            <input type="number" id="income" name="income" required><br>
+
+            <label for="spending_score">Spending Score</label><br>
+            <input type="number" id="spending_score" name="spending_score" required><br>
+
+            <input type="submit" value="Save to File" />
+        </form>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        let fileHandle;
+    
+        document.getElementById("chooseFile").addEventListener("click", async () => {
+            try {
+                fileHandle = await window.showSaveFilePicker({
+                    suggestedName: "customer_data.csv",
+                    types: [{
+                        description: "CSV file",
+                        accept: { "text/csv": [".csv"] },
+                    }],
+                });
+    
+                const file = await fileHandle.getFile();
+                const text = await file.text();
+    
+                if (text.trim() === "") {
+                    const writable = await fileHandle.createWritable();
+                    await writable.write("Customer ID,Age,Gender,Income,Spending Score\n");
+                    await writable.close();
+                }
+    
+                document.getElementById("message").textContent = "File ready to use!";
+                setTimeout(() => document.getElementById("message").textContent = "", 3000);
+            } catch (err) {
+                console.error("File access error:", err);
+            }
+        });
+    
+        document.getElementById("customerForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+    
+            if (!fileHandle) {
+                alert("Please choose or create a file first.");
+                return;
+            }
+    
+            try {
+                const file = await fileHandle.getFile();
+                const text = await file.text();
+                const lines = text.trim().split("\n");
+    
+                const headers = lines[0];
+                const rows = lines.slice(1);
+    
+                const customerId = document.getElementById("customer_id").value;
+                const age = document.getElementById("age").value;
+                const gender = document.getElementById("gender").value;
+                const income = document.getElementById("income").value;
+                const spendingScore = document.getElementById("spending_score").value;
+    
+                let updated = false;
+    
+                const newRows = rows.map(row => {
+                    const cols = row.split(",");
+                    if (cols[0] === customerId) {
+                        // Update income and spending score
+                        cols[3] = income;
+                        cols[4] = spendingScore;
+                        updated = true;
+                    }
+                    return cols.join(",");
+                });
+    
+                if (!updated) {
+                    newRows.push([customerId, age, gender, income, spendingScore].join(","));
+                }
+    
+                const finalContent = [headers, ...newRows].join("\n");
+    
+                const writable = await fileHandle.createWritable();
+                await writable.write(finalContent);
+                await writable.close();
+    
+                document.getElementById("message").textContent = updated
+                    ? "Customer data updated successfully!"
+                    : "New customer data saved!";
+                setTimeout(() => document.getElementById("message").textContent = "", 3000);
+    
+                document.getElementById("customerForm").reset();
+            } catch (err) {
+                console.error("Failed to write:", err);
+                alert("Failed to save data.");
+            }
+        });
+    </script>
+    
+    
+
+   
+</body>
+
+</html>s
